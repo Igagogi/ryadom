@@ -7,5 +7,12 @@ router = APIRouter()
 
 @router.post("/recommendations", response_model=RecommendationResponse)
 def get_recommendations(recommendation: RecommendationRequest):
+    
     result = generate_recommendation(recommendation.age, recommendation.situation)
-    return RecommendationResponse(recommendation=result)
+
+    return RecommendationResponse(
+        steps=result.steps, 
+        phrase=result.phrase, 
+        avoid=result.avoid, 
+        if_not_helped=result.if_not_helped
+        )

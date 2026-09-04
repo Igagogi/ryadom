@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class RecommendationRequest(BaseModel):
@@ -6,9 +6,14 @@ class RecommendationRequest(BaseModel):
     situation: str
 
 class RecommendationResponse(BaseModel):
-    recommendation: str
+    steps: list[str]
+    phrase: str
+    avoid: list[str]
+    if_not_helped: str
 
 class RecommendationAIResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
     steps: list[str]
     phrase: str
     avoid: list[str]
