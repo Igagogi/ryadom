@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RecommendationRequest(BaseModel):
-    age: int
-    situation: str
+    age: int = Field(ge=1, le=16, description="Возраст ребёнка (от 1 до 16 лет)")
+    situation: str = Field(min_length=3, description="Описание ситуации, с которой сталкивается ребёнок")
 
 class RecommendationResponse(BaseModel):
     steps: list[str]
