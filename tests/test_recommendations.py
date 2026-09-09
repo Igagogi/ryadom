@@ -1,13 +1,16 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.recommendations import RecommendationAIResponse
+from app.service.ai import AIServiceError
 from app.service.recommendations import generate_recommendation
 
 
-def test_generate_recommendation_with_scenario():
+@pytest.mark.anyio
+async def test_generate_recommendation_with_scenario():
     """Тестирование генерации рекомендации с использованием сценария."""
     age = 4
     situation = "не хочет спать"
@@ -22,18 +25,19 @@ def test_generate_recommendation_with_scenario():
     )
 
     with patch("app.service.recommendations.ai.generate_ai_recommendation", new=mock_ai.generate_ai_recommendation):
-        result = generate_recommendation(age, situation)
+        result = await generate_recommendation(age, situation)
         mock_ai.generate_ai_recommendation.assert_not_called()
 
     assert result is not None
     assert result.phrase == "Сейчас время готовиться ко сну. Давай вместе закончим наш день."
 
-def test_generate_recommendation_with_ai():
+@pytest.mark.anyio
+async def test_generate_recommendation_with_ai():
     """Тестирование генерации рекомендации с использованием AI."""
     age = 2
     situation = "ребёнок боится идти в детский сад"
 
-    mock_ai = Mock()
+    mock_ai = AsyncMock()
     
     mock_ai.generate_ai_recommendation.return_value = RecommendationAIResponse(
         steps=["Step 1", "Step 2"],
@@ -43,8 +47,8 @@ def test_generate_recommendation_with_ai():
         )
 
     with patch("app.service.recommendations.ai.generate_ai_recommendation", new=mock_ai.generate_ai_recommendation):
-        result = generate_recommendation(age, situation)
-        mock_ai.generate_ai_recommendation.assert_called_once_with(age, situation)
+        result = await generate_recommendation(age, situation)
+        mock_ai.generate_ai_recommendation.assert_awaited_once_with(age, situation)
 
     assert result is not None
     assert result.phrase == "This is a test phrase."
@@ -147,17 +151,28 @@ def test_recommendations_endpoint_valid_age_boundaries():
     """Тестирование эндпоинта /recommendations с граничными значениями возраста."""
     client = TestClient(app)
 
-    response = client.post("/recommendations", json={
-        "age": 1,
-        "situation": "боится идти в детский сад"
-    })
-    assert response.status_code == 200
+    mock_result = RecommendationAIResponse(
+        steps=["Step 1"],
+        phrase="Test phrase",
+        avoid=["Avoid 1"],
+        if_not_helped="Test if not helped"
+    )
 
-    response = client.post("/recommendations", json={
-        "age": 16,
-        "situation": "боится идти в школу"
-    })
-    assert response.status_code == 200
+    with patch(
+        "app.service.recommendations.ai.generate_ai_recommendation",
+        return_value=mock_result
+    ):
+        response = client.post("/recommendations", json={
+            "age": 1,
+            "situation": "боится идти в детский сад"
+        })
+        assert response.status_code == 200
+
+        response = client.post("/recommendations", json={
+            "age": 16,
+            "situation": "боится идти в школу"
+        })
+        assert response.status_code == 200
 
 def test_recommendations_endpoint_situation_too_short():
     """Тестирование эндпоинта /recommendations с слишком коротким описанием ситуации."""
@@ -180,3 +195,23 @@ def test_recommendations_endpoint_situation_empty():
     })
 
     assert response.status_code == 422
+
+def test_recommendations_endpoint_ai_service_error():
+    client = TestClient(app)
+
+    with patch(
+        "app.service.recommendations.ai.generate_ai_recommendation",
+        side_effect=AIServiceError("AI service error")
+    ):
+        response = client.post(
+            "/recommendations",
+            json={
+                "age": 6,
+                "situation": "ребёнок боится идти в школу"
+            }
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "Сервис рекомендаций временно недоступен"
+    }

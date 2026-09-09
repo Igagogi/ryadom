@@ -1,9 +1,11 @@
+from fastapi import HTTPException
+
 from app.schemas.recommendations import RecommendationAIResponse
-from app.service.scenarios import find_scenario
 from app.service import ai
+from app.service.scenarios import find_scenario
 
 
-def generate_recommendation(age: int, situation: str) -> RecommendationAIResponse:
+async def generate_recommendation(age: int, situation: str) -> RecommendationAIResponse:
 
     scenario = find_scenario(age, situation)
 
@@ -14,7 +16,13 @@ def generate_recommendation(age: int, situation: str) -> RecommendationAIRespons
             avoid=scenario.avoid,
             if_not_helped=scenario.if_not_helped
         )
-    
-    result = ai.generate_ai_recommendation(age, situation)
+
+    try:
+        result = await ai.generate_ai_recommendation(age, situation)
+    except ai.AIServiceError:
+        raise HTTPException(
+            status_code=503,
+            detail="Сервис рекомендаций временно недоступен"
+        )
 
     return result
