@@ -1,12 +1,13 @@
 from fastapi import HTTPException
 
+from app.db.models import User
 from app.schemas.recommendations import RecommendationAIResponse
 from app.service import ai
 from app.service.scenarios import find_scenario
 from app.utils.rate_limit import check_and_increment
 
 
-async def generate_recommendation(age: int, situation: str, ip: str) -> RecommendationAIResponse:
+async def generate_recommendation(age: int, situation: str, ip: str, current_user: User | None) -> RecommendationAIResponse:
 
     scenario = find_scenario(age, situation)
 
@@ -18,11 +19,12 @@ async def generate_recommendation(age: int, situation: str, ip: str) -> Recommen
             if_not_helped=scenario.if_not_helped
         )
 
-    if not check_and_increment(ip):
-        raise HTTPException(
-            status_code=429,
-            detail="Бесплатный лимит AI-запросов исчерпан. Зарегистрируйтесь, чтобы продолжить."            
-        )
+    if current_user is None:
+        if not check_and_increment(ip):
+            raise HTTPException(
+                status_code=429,
+                detail="Бесплатный лимит AI-запросов исчерпан. Зарегистрируйтесь, чтобы продолжить.",
+            )
 
     try:
         result = await ai.generate_ai_recommendation(age, situation)
