@@ -7,3 +7,8 @@ class UserResponse(BaseModel):
     id: int
     name: str
     age: int
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    age: int | None = None
+
