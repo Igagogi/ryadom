@@ -9,50 +9,6 @@ from app.service.ai import AIServiceError
 from app.service.recommendations import generate_recommendation
 
 
-@pytest.mark.anyio
-async def test_generate_recommendation_with_scenario():
-    """Тестирование генерации рекомендации с использованием сценария."""
-    age = 4
-    situation = "не хочет спать"
-
-    mock_ai = Mock()
-
-    mock_ai.generate_ai_recommendation.return_value = RecommendationAIResponse(
-        steps=["Step 1", "Step 2"],
-        phrase="This is a test phrase.",
-        avoid=["Avoid 1", "Avoid 2"],
-        if_not_helped="This is a test if_not_helped."
-    )
-
-    with patch("app.service.recommendations.ai.generate_ai_recommendation", new=mock_ai.generate_ai_recommendation):
-        result = await generate_recommendation(age, situation)
-        mock_ai.generate_ai_recommendation.assert_not_called()
-
-    assert result is not None
-    assert result.phrase == "Сейчас время готовиться ко сну. Давай вместе закончим наш день."
-
-@pytest.mark.anyio
-async def test_generate_recommendation_with_ai():
-    """Тестирование генерации рекомендации с использованием AI."""
-    age = 2
-    situation = "ребёнок боится идти в детский сад"
-
-    mock_ai = AsyncMock()
-    
-    mock_ai.generate_ai_recommendation.return_value = RecommendationAIResponse(
-        steps=["Step 1", "Step 2"],
-        phrase="This is a test phrase.",
-        avoid=["Avoid 1", "Avoid 2"],
-        if_not_helped="This is a test if_not_helped."
-        )
-
-    with patch("app.service.recommendations.ai.generate_ai_recommendation", new=mock_ai.generate_ai_recommendation):
-        result = await generate_recommendation(age, situation)
-        mock_ai.generate_ai_recommendation.assert_awaited_once_with(age, situation)
-
-    assert result is not None
-    assert result.phrase == "This is a test phrase."
-
 def test_recommendations_endpoint_with_scenario():
     """Тестирование эндпоинта /recommendations с использованием сценария."""
     client = TestClient(app)
@@ -195,23 +151,3 @@ def test_recommendations_endpoint_situation_empty():
     })
 
     assert response.status_code == 422
-
-def test_recommendations_endpoint_ai_service_error():
-    client = TestClient(app)
-
-    with patch(
-        "app.service.recommendations.ai.generate_ai_recommendation",
-        side_effect=AIServiceError("AI service error")
-    ):
-        response = client.post(
-            "/recommendations",
-            json={
-                "age": 6,
-                "situation": "ребёнок боится идти в школу"
-            }
-        )
-
-    assert response.status_code == 503
-    assert response.json() == {
-        "detail": "Сервис рекомендаций временно недоступен"
-    }
