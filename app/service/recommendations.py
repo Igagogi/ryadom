@@ -19,7 +19,7 @@ async def generate_recommendation(age: int, situation: str, ip: str, current_use
             if_not_helped=scenario.if_not_helped
         )
 
-    if current_user is None:
+    if current_user is None:  # noqa: SIM102
         if not check_and_increment(ip):
             raise HTTPException(
                 status_code=429,
