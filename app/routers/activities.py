@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, Request
 
 from app.core.dependencies import get_optional_current_user
 from app.db.models import User
-from app.schemas.activities import ActivityRequest, ActivityResponse
+from app.schemas.activities import ActivityRequest, ActivityAIResponse
 from app.service.activities import generate_activity
 
 router = APIRouter()
 
-@router.post("/activities", response_model=ActivityResponse)
+@router.post("/activities", response_model=ActivityAIResponse)
 async def create_activity(
     activity_request: ActivityRequest,
     request: Request,
@@ -23,9 +23,4 @@ async def create_activity(
         current_user=current_user,
     )
 
-    return ActivityResponse(
-        title=result.title,
-        description=result.description,
-        steps=result.steps,
-        duration=result.duration,
-    )
+    return result
