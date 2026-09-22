@@ -13,10 +13,13 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
+
 class Base(DeclarativeBase):
     pass
 
+
 SessionLocal = sessionmaker(bind=engine)
+
 
 def get_db():
     with SessionLocal() as session:

@@ -7,6 +7,7 @@ from app.service.stories import generate_story
 
 router = APIRouter()
 
+
 @router.post("/stories", response_model=StoryResponse)
 async def create_story(
     story_request: StoryRequest,
@@ -23,7 +24,4 @@ async def create_story(
         current_user=current_user,
     )
 
-    return StoryResponse(
-        title=result.title,
-        story=result.story
-    )
+    return StoryResponse(title=result.title, story=result.story)

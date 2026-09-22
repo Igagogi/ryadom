@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
-    name: str
-    age: int
+    name: str = Field(min_length=1, max_length=100)
+    age: int = Field(ge=18, le=120)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8, max_length=128)
+
 
 class RegisterResponse(BaseModel):
     id: int
@@ -13,9 +14,11 @@ class RegisterResponse(BaseModel):
     age: int
     email: EmailStr
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 class LoginResponse(BaseModel):
     access_token: str

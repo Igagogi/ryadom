@@ -7,11 +7,12 @@ from app.service.activities import generate_activity
 
 router = APIRouter()
 
+
 @router.post("/activities", response_model=ActivityAIResponse)
 async def create_activity(
     activity_request: ActivityRequest,
     request: Request,
-    current_user: User | None = Depends(get_optional_current_user)
+    current_user: User | None = Depends(get_optional_current_user),
 ):
 
     result = await generate_activity(

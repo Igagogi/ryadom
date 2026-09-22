@@ -7,7 +7,7 @@ from app.repository import users
 
 
 def register_user(db: Session, name: str, age: int, email: str, password: str) -> User:
-    
+
     user = users.get_user_by_email(db, email)
 
     if user is not None:
@@ -22,6 +22,7 @@ def register_user(db: Session, name: str, age: int, email: str, password: str) -
 
     return new_user
 
+
 def login_user(db: Session, email: str, password: str) -> dict:
 
     user = users.get_user_by_email(db, email)
@@ -31,13 +32,10 @@ def login_user(db: Session, email: str, password: str) -> dict:
 
     if user.password_hash is None:
         raise HTTPException(401, "Неверный email или пароль")
-    
+
     if not security.verify_password(password, user.password_hash):
         raise HTTPException(401, "Неверный email или пароль")
 
     access_token = security.create_access_token(data={"sub": str(user.id)})
 
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer"
-        }
+    return {"access_token": access_token, "token_type": "bearer"}

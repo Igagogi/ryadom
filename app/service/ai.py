@@ -25,6 +25,7 @@ from app.schemas.story import StoryAIResponse, StoryDuration, StoryMood
 class AIServiceError(Exception):
     pass
 
+
 load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
@@ -158,6 +159,7 @@ STORY_SYSTEM_PROMPT = """
 Верни только данные в соответствии с JSON Schema.
 """
 
+
 async def generate_ai_recommendation(
     age: int,
     category: str,
@@ -202,18 +204,14 @@ async def generate_ai_recommendation(
         RateLimitError,
         BadRequestError,
     ) as e:
-        raise AIServiceError(
-            "Ошибка при генерации рекомендации AI:"
-        ) from e
+        raise AIServiceError("Ошибка при генерации рекомендации AI") from e
 
     try:
         content = response.choices[0].message.content.strip()
         data = json.loads(content)
         result = RecommendationAIResponse(**data)
     except (json.JSONDecodeError, ValidationError) as e:
-        raise AIServiceError(
-            "AI-сервис вернул некорректный ответ"
-        ) from e
+        raise AIServiceError("AI-сервис вернул некорректный ответ") from e
 
     return result
 
@@ -256,12 +254,8 @@ async def generate_ai_activity(
             messages=messages,
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "activity",
-                    "strict": True,
-                    "schema": schema
-                }
-            }
+                "json_schema": {"name": "activity", "strict": True, "schema": schema},
+            },
         )
     except (
         APIConnectionError,
@@ -270,18 +264,14 @@ async def generate_ai_activity(
         RateLimitError,
         BadRequestError,
     ) as e:
-        raise AIServiceError(
-            "Ошибка при генерации активности AI:"
-        ) from e
+        raise AIServiceError("Ошибка при генерации активности AI") from e
 
     try:
         content = response.choices[0].message.content.strip()
         data = json.loads(content)
         result = ActivityAIResponse(**data)
     except (json.JSONDecodeError, ValidationError) as e:
-        raise AIServiceError(
-            "AI-сервис вернул некорректный ответ"
-        ) from e
+        raise AIServiceError("AI-сервис вернул некорректный ответ") from e
 
     return result
 
@@ -291,9 +281,9 @@ async def generate_ai_story(
     name: str | None,
     mood: StoryMood,
     character: str | None,
-    duration: StoryDuration
+    duration: StoryDuration,
 ) -> StoryAIResponse:
-    
+
     schema = StoryAIResponse.model_json_schema()
 
     messages = [
@@ -306,8 +296,8 @@ async def generate_ai_story(
                 f"Настроение истории: {mood.value}. "
                 f"Предпочитаемый персонаж: {character or 'не указан'}. "
                 f"Продолжительность истории: {duration.value}. "
-            )
-        }
+            ),
+        },
     ]
 
     try:
@@ -316,34 +306,24 @@ async def generate_ai_story(
             messages=messages,
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "story",
-                    "strict": True,
-                    "schema": schema
-                }
-            }
+                "json_schema": {"name": "story", "strict": True, "schema": schema},
+            },
         )
     except (
         APIConnectionError,
         APITimeoutError,
         InternalServerError,
         RateLimitError,
-        BadRequestError
+        BadRequestError,
     ) as e:
-        
-        print("AI ERROR:", type(e).__name__, e)
-        
-        raise AIServiceError(
-            "Ошибка при генерации истории AI:"
-        ) from e
+
+        raise AIServiceError("Ошибка при генерации истории AI") from e
 
     try:
         content = response.choices[0].message.content.strip()
         data = json.loads(content)
         result = StoryAIResponse(**data)
     except (json.JSONDecodeError, ValidationError) as e:
-        raise AIServiceError(
-            "AI-сервис вернул некорректный ответ"
-        ) from e
+        raise AIServiceError("AI-сервис вернул некорректный ответ") from e
 
     return result

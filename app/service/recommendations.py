@@ -37,7 +37,7 @@ async def generate_recommendation(
             )
 
     if current_user is None:
-        if not check_and_increment(ip):
+        if not check_and_increment(ip, operation="recommendations"):
             raise HTTPException(
                 status_code=429,
                 detail="Бесплатный лимит AI-запросов исчерпан. Зарегистрируйтесь, чтобы продолжить.",

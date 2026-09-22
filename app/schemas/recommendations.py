@@ -20,12 +20,14 @@ class RecommendationRequest(BaseModel):
         description="Место, где происходит ситуация",
     )
 
+
 class RecommendationResponse(BaseModel):
     title: str
     steps: list[str]
     phrase: str
     avoid: list[str]
     if_not_helped: str
+
 
 class RecommendationAIResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")

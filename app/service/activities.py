@@ -16,12 +16,12 @@ async def generate_activity(
 ) -> ActivityAIResponse:
 
     if current_user is None:
-        if not check_and_increment(ip, limit=1):
+        if not check_and_increment(ip, operation="activities", limit=1):
             raise HTTPException(
                 status_code=429,
                 detail="Бесплатный лимит AI-запросов исчерпан. Зарегистрируйтесь, чтобы продолжить.",
             )
-    
+
     try:
         result = await generate_ai_activity(
             age=age,
@@ -46,9 +46,7 @@ async def generate_activity(
             )
 
         if result.duration > time:
-            raise AIServiceError(
-                "AI не смог сформировать подходящую активность"
-            )
+            raise AIServiceError("AI не смог сформировать подходящую активность")
 
     except AIServiceError:
         raise HTTPException(

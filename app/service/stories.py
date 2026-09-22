@@ -17,7 +17,7 @@ async def generate_story(
 ) -> StoryAIResponse:
 
     if current_user is None:
-        if not check_and_increment(ip, limit=1):
+        if not check_and_increment(ip, operation="stories", limit=1):
             raise HTTPException(
                 status_code=429,
                 detail="Бесплатный лимит AI-запросов исчерпан. Зарегистрируйтесь, чтобы продолжить.",
@@ -33,8 +33,7 @@ async def generate_story(
         )
     except AIServiceError:
         raise HTTPException(
-            status_code=503, 
-            detail="Сервис генераций историй временно недоступен."
+            status_code=503, detail="Сервис генераций историй временно недоступен."
         )
 
     return result
