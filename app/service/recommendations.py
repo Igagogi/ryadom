@@ -1,25 +1,42 @@
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from app.db.models import User
+from app.repository.scenarios import get_scenario
 from app.schemas.recommendations import RecommendationAIResponse
 from app.service import ai
-from app.service.scenarios import find_scenario
 from app.utils.rate_limit import check_and_increment
 
 
-async def generate_recommendation(age: int, situation: str, ip: str, current_user: User | None) -> RecommendationAIResponse:
+async def generate_recommendation(
+    age: int,
+    category: str,
+    subcategory: str,
+    place: str | None,
+    ip: str,
+    current_user: User | None,
+    db: Session,
+) -> RecommendationAIResponse:
 
-    scenario = find_scenario(age, situation)
-
-    if scenario is not None:
-        return RecommendationAIResponse(
-            steps=scenario.steps,
-            phrase=scenario.phrase,
-            avoid=scenario.avoid,
-            if_not_helped=scenario.if_not_helped
+    if category != "other":
+        scenario = get_scenario(
+            db=db,
+            category=category,
+            subcategory=subcategory,
+            age=age,
+            place=place,
         )
 
-    if current_user is None:  # noqa: SIM102
+        if scenario is not None:
+            return RecommendationAIResponse(
+                title=scenario.title,
+                steps=scenario.steps,
+                phrase=scenario.phrase,
+                avoid=scenario.avoid,
+                if_not_helped=scenario.if_not_helped,
+            )
+
+    if current_user is None:
         if not check_and_increment(ip):
             raise HTTPException(
                 status_code=429,
@@ -27,11 +44,16 @@ async def generate_recommendation(age: int, situation: str, ip: str, current_use
             )
 
     try:
-        result = await ai.generate_ai_recommendation(age, situation)
+        result = await ai.generate_ai_recommendation(
+            age,
+            category,
+            subcategory,
+            place,
+        )
     except ai.AIServiceError:
         raise HTTPException(
             status_code=503,
-            detail="Сервис рекомендаций временно недоступен"
+            detail="Сервис рекомендаций временно недоступен",
         )
 
     return result
