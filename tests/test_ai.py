@@ -1,41 +1,35 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock
 
 import pytest
-from groq import APITimeoutError
 
-from app.service.ai import AIServiceError, generate_ai_recommendation
-
-
-@pytest.mark.anyio
-async def test_generate_ai_recommendation_timeout():
-    """Тестирование генерации рекомендации с использованием AI при тайм-ауте."""
-    with patch(
-        "app.service.ai.client.chat.completions.create",
-        side_effect=APITimeoutError("timeout"),
-    ):
-        with pytest.raises(AIServiceError):
-            await generate_ai_recommendation(4, "refusal", "sleep", "home")
+from app.ai.base import LLMProvider
+from app.ai.service import AIService, AIServiceError
+from app.schemas.recommendations import RecommendationAIResponse
 
 
 @pytest.mark.anyio
-async def test_generate_ai_recommendation_invalid_json():
-    """Тестирование генерации рекомендации с использованием AI при получении некорректного JSON."""
-    mock_response = Mock()
-    mock_response.choices = [Mock()]
-    mock_response.choices[0].message.content = "это не JSON"
+async def test_ai_service_invalid_json():
+    """AIService возвращает ошибку при некорректном JSON."""
 
-    with patch(
-        "app.service.ai.client.chat.completions.create", return_value=mock_response
-    ), pytest.raises(AIServiceError):
-        await generate_ai_recommendation(4, "refusal", "sleep", "home")
+    mock_provider = AsyncMock(spec=LLMProvider)
+    mock_provider.generate.return_value = "это не JSON"
+
+    ai_service = AIService(mock_provider)
+
+    with pytest.raises(AIServiceError):
+        await ai_service.generate(
+            system_prompt="test",
+            user_prompt="test",
+            response_model=RecommendationAIResponse,
+        )
 
 
 @pytest.mark.anyio
-async def test_generate_ai_recommendation_invalid_schema():
-    """Тестирование генерации рекомендации с использованием AI при получении JSON, не соответствующего схеме."""
-    mock_response = Mock()
-    mock_response.choices = [Mock()]
-    mock_response.choices[0].message.content = """
+async def test_ai_service_invalid_schema():
+    """AIService возвращает ошибку при JSON, не соответствующем схеме."""
+
+    mock_provider = AsyncMock(spec=LLMProvider)
+    mock_provider.generate.return_value = """
     {
         "steps": ["Успокойте ребёнка"],
         "phrase": "Давай попробуем вместе",
@@ -43,7 +37,11 @@ async def test_generate_ai_recommendation_invalid_schema():
     }
     """
 
-    with patch(
-        "app.service.ai.client.chat.completions.create", return_value=mock_response
-    ), pytest.raises(AIServiceError):
-        await generate_ai_recommendation(4, "refusal", "sleep", "home")
+    ai_service = AIService(mock_provider)
+
+    with pytest.raises(AIServiceError):
+        await ai_service.generate(
+            system_prompt="test",
+            user_prompt="test",
+            response_model=RecommendationAIResponse,
+        )

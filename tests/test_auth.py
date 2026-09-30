@@ -5,6 +5,7 @@ from app.schemas.auth import RegisterRequest
 
 
 def test_register_request_valid():
+    """Тест для проверки корректного создания объекта RegisterRequest с валидными данными."""
     user = RegisterRequest(
         name="Игорь",
         age=33,
@@ -49,5 +50,6 @@ def test_register_request_valid():
     ],
 )
 def test_register_request_invalid(data):
+    """Тест для проверки создания объекта RegisterRequest с недопустимыми данными."""
     with pytest.raises(ValidationError):
         RegisterRequest(**data)

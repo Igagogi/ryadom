@@ -1,11 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from fastapi.testclient import TestClient
 
+from app.ai.service import AIService, AIServiceError
+from app.core.ai import get_ai_service
 from app.main import app
 from app.schemas.recommendations import RecommendationAIResponse
-from app.service.ai import AIServiceError
 from app.utils.rate_limit import request_counts
 
 
@@ -39,9 +39,8 @@ def test_recommendations_endpoint_with_scenario():
     assert isinstance(data["if_not_helped"], str)
 
 
-def test_recommendations_endpoint_with_ai():
+def test_recommendations_endpoint_with_ai(client):
     """Тестирование рекомендации через AI."""
-    client = TestClient(app)
 
     mock_result = RecommendationAIResponse(
         title="Тестовая рекомендация",
@@ -51,10 +50,12 @@ def test_recommendations_endpoint_with_ai():
         if_not_helped="This is a test if_not_helped.",
     )
 
-    with patch(
-        "app.service.recommendations.ai.generate_ai_recommendation",
-        return_value=mock_result,
-    ):
+    mock_ai_service = MagicMock(spec=AIService)
+    mock_ai_service.generate = AsyncMock(return_value=mock_result)
+
+    app.dependency_overrides[get_ai_service] = lambda: mock_ai_service
+
+    try:
         response = client.post(
             "/recommendations",
             json={
@@ -64,6 +65,10 @@ def test_recommendations_endpoint_with_ai():
                 "place": "home",
             },
         )
+
+        mock_ai_service.generate.assert_awaited_once()
+    finally:
+        app.dependency_overrides.pop(get_ai_service, None)
 
     assert response.status_code == 200
 
@@ -81,7 +86,8 @@ def test_recommendations_endpoint_invalid_age():
     client = TestClient(app)
 
     response = client.post(
-        "/recommendations", json={"age": "hello", "situation": "не хочет спать"}
+        "/recommendations",
+        json={"age": "hello", "situation": "не хочет спать"},
     )
 
     assert response.status_code == 422
@@ -92,13 +98,15 @@ def test_recommendations_endpoint_age_out_of_range():
     client = TestClient(app)
 
     response = client.post(
-        "/recommendations", json={"age": 0, "situation": "не хочет спать"}
+        "/recommendations",
+        json={"age": 0, "situation": "не хочет спать"},
     )
 
     assert response.status_code == 422
 
     response = client.post(
-        "/recommendations", json={"age": 17, "situation": "не хочет спать"}
+        "/recommendations",
+        json={"age": 17, "situation": "не хочет спать"},
     )
 
     assert response.status_code == 422
@@ -116,10 +124,12 @@ def test_recommendations_endpoint_valid_age_boundaries():
         if_not_helped="Test if not helped",
     )
 
-    with patch(
-        "app.service.recommendations.ai.generate_ai_recommendation",
-        return_value=mock_result,
-    ):
+    mock_ai_service = MagicMock(spec=AIService)
+    mock_ai_service.generate = AsyncMock(return_value=mock_result)
+
+    app.dependency_overrides[get_ai_service] = lambda: mock_ai_service
+
+    try:
         response = client.post(
             "/recommendations",
             json={
@@ -142,6 +152,10 @@ def test_recommendations_endpoint_valid_age_boundaries():
         )
         assert response.status_code == 200
 
+        assert mock_ai_service.generate.await_count == 2
+    finally:
+        app.dependency_overrides.pop(get_ai_service, None)
+
 
 def test_recommendations_endpoint_ai_error():
     """Тестирование ошибки AI-сервиса."""
@@ -149,10 +163,14 @@ def test_recommendations_endpoint_ai_error():
 
     request_counts.clear()
 
-    with patch(
-        "app.service.recommendations.ai.generate_ai_recommendation",
+    mock_ai_service = MagicMock(spec=AIService)
+    mock_ai_service.generate = AsyncMock(
         side_effect=AIServiceError("AI error"),
-    ):
+    )
+
+    app.dependency_overrides[get_ai_service] = lambda: mock_ai_service
+
+    try:
         response = client.post(
             "/recommendations",
             json={
@@ -162,5 +180,7 @@ def test_recommendations_endpoint_ai_error():
                 "place": "home",
             },
         )
+    finally:
+        app.dependency_overrides.pop(get_ai_service, None)
 
     assert response.status_code == 503

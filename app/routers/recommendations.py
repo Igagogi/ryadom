@@ -1,21 +1,30 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+from app.ai.service import AIService
+from app.core.ai import get_ai_service
 from app.core.dependencies import get_optional_current_user
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas.recommendations import RecommendationRequest, RecommendationResponse
+from app.schemas.recommendations import (
+    RecommendationRequest,
+    RecommendationResponse,
+)
 from app.service.recommendations import generate_recommendation
 
 router = APIRouter()
 
 
-@router.post("/recommendations", response_model=RecommendationResponse)
+@router.post(
+    "/recommendations",
+    response_model=RecommendationResponse,
+)
 async def get_recommendations(
     recommendation: RecommendationRequest,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_current_user),
+    ai_service: AIService = Depends(get_ai_service),
 ):
     result = await generate_recommendation(
         recommendation.age,
@@ -25,6 +34,7 @@ async def get_recommendations(
         request.client.host,
         current_user,
         db,
+        ai_service,
     )
 
     return RecommendationResponse(

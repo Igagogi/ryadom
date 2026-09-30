@@ -6,7 +6,11 @@ AI-помощник для родителей детей 2–6 лет.
 
 > «Что делать прямо сейчас?»
 
-Ответы ориентированы на конкретную ситуацию, возраст ребёнка и контекст.
+Ответ формируется с учётом возраста ребёнка, ситуации и контекста.
+
+Проект разработан как полноценный backend-проект с REST API, PostgreSQL, JWT-аутентификацией, интеграцией LLM, тестированием и Docker.
+
+---
 
 ## Возможности
 
@@ -19,15 +23,15 @@ AI-помощник для родителей детей 2–6 лет.
 - подкатегорию;
 - место.
 
-Система сначала пытается найти готовый сценарий в базе данных.
+Система сначала ищет подходящий готовый сценарий в PostgreSQL.
 
-Если подходящего сценария нет, запрос передаётся AI.
+Если сценарий не найден, запрос передаётся AI.
 
 Ответ содержит:
 
 - название рекомендации;
 - последовательность действий;
-- готовую фразу для ребёнка;
+- готовую фразу;
 - чего лучше избегать;
 - что делать, если рекомендация не помогла.
 
@@ -35,18 +39,18 @@ AI-помощник для родителей детей 2–6 лет.
 
 Пользователь указывает:
 
-- возраст;
+- возраст ребёнка;
 - доступное время;
 - место;
 - доступные предметы.
 
 AI генерирует одно подходящее занятие.
 
-Если AI предлагает занятие дольше доступного времени, выполняется дополнительная корректировка.
+Если AI предлагает занятие дольше доступного времени, система отправляет дополнительный запрос на корректировку.
 
 ### 3. Истории
 
-Можно создать короткую персонализированную историю с учётом:
+Можно создать персонализированную историю с учётом:
 
 - возраста;
 - имени ребёнка;
@@ -61,7 +65,7 @@ AI генерирует одно подходящее занятие.
 - регистрация;
 - вход;
 - JWT-аутентификация;
-- хеширование паролей;
+- хеширование паролей через Argon2;
 - получение текущего пользователя;
 - изменение данных пользователя;
 - удаление пользователя.
@@ -76,91 +80,227 @@ AI генерирует одно подходящее занятие.
 - занятия;
 - истории.
 
-Авторизованные пользователи не используют этот гостевой лимит.
+Авторизованные пользователи не используют гостевой лимит.
+
+### 6. Web-интерфейс
+
+В проекте есть frontend на HTML, CSS и JavaScript.
+
+Frontend взаимодействует с реальным FastAPI API и поддерживает регистрацию, авторизацию, профиль пользователя, рекомендации, генерацию занятий и историй, обработку ошибок API и адаптивный интерфейс.
+
+---
 
 ## Архитектура
 
-Проект использует разделение ответственности:
+Основная структура backend:
 
 ```text
+Client
+   ↓
 Router
    ↓
 Schema
    ↓
 Service
-   ↓
-Repository
-   ↓
-PostgreSQL
+   ├── Repository → PostgreSQL
+   │
+   └── AIService → LLM Provider
 ```
 
-AI-функциональность вынесена в отдельный сервис:
+### Основные компоненты
+
+**Router** — HTTP-эндпоинты FastAPI, получение параметров запроса и подключение зависимостей.
+
+**Schema** — Pydantic-модели для валидации входных данных и формирования API-ответов.
+
+**Service** — бизнес-логика приложения и координация между repository, AI и другими компонентами.
+
+**Repository** — работа с PostgreSQL через SQLAlchemy.
+
+**AIService** — единая точка взаимодействия бизнес-логики с LLM-провайдерами.
+
+**Security** — хеширование паролей и работа с JWT.
+
+**Dependencies** — FastAPI-зависимости, включая получение текущего пользователя и AI-сервиса.
+
+**Alembic** — миграции структуры базы данных.
+
+---
+
+## AI-архитектура
+
+Для работы с несколькими LLM-провайдерами используется единый интерфейс:
 
 ```text
-Router
-   ↓
-Service
-   ├── Repository → PostgreSQL
-   └── AI Service → Groq API
+                    ┌── Groq
+                    │
+AIService ──────────┼── OpenAI
+                    │
+                    └── Yandex
 ```
 
-Основные компоненты:
+Провайдер выбирается через переменную окружения:
 
-- **Router** — HTTP-эндпоинты и зависимости FastAPI.
-- **Schema** — валидация входных данных и формат API-ответов.
-- **Service** — бизнес-логика.
-- **Repository** — работа с базой данных.
-- **AI Service** — взаимодействие с LLM.
-- **Security** — пароли и JWT.
-- **Alembic** — миграции базы данных.
+```env
+AI_PROVIDER=groq
+```
 
-## Технологии
+Поддерживаемые значения:
 
-- Python 3.13
-- FastAPI
-- PostgreSQL
-- SQLAlchemy
-- Alembic
-- Pydantic
-- pytest
-- Groq API
-- PyJWT
-- pwdlib + Argon2
-- python-dotenv
+```text
+groq
+openai
+yandex
+```
+
+Каждый провайдер реализует единый интерфейс `LLMProvider`.
+
+Это позволяет менять поставщика AI без изменения бизнес-логики приложения.
+
+---
 
 ## Структура проекта
 
 ```text
-app/
-├── constants/
-├── core/
-├── db/
-├── repository/
-├── routers/
-├── schemas/
-├── service/
-└── utils/
-
-alembic/
-docs/
-tests/
-.env
-.gitignore
-alembic.ini
-requirements.txt
-README.md
+ryadom/
+│
+├── app/
+│   ├── ai/
+│   │   ├── prompts/
+│   │   ├── base.py
+│   │   ├── factory.py
+│   │   ├── groq_provider.py
+│   │   ├── openai_provider.py
+│   │   ├── service.py
+│   │   └── yandex_provider.py
+│   │
+│   ├── constants/
+│   ├── core/
+│   ├── db/
+│   ├── repository/
+│   ├── routers/
+│   ├── schemas/
+│   ├── service/
+│   └── utils/
+│
+├── alembic/
+├── frontend/
+├── tests/
+│
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── docker-compose.yml
+├── alembic.ini
+├── pytest.ini
+├── requirements.txt
+└── README.md
 ```
 
-## Запуск проекта
+---
 
-### 1. Клонирование
+# Технологии
+
+### Backend
+
+- Python 3.13
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
+- Alembic
+- Uvicorn
+
+### Authentication & Security
+
+- PyJWT
+- pwdlib
+- Argon2
+
+### AI
+
+- Groq API
+- OpenAI API
+- Yandex AI Studio SDK
+
+### Testing
+
+- pytest
+- pytest-asyncio
+- HTTP testing
+
+### Infrastructure
+
+- Docker
+- Docker Compose
+
+### Frontend
+
+- HTML
+- CSS
+- JavaScript
+
+---
+
+# Переменные окружения
+
+Создайте файл `.env` в корне проекта.
+
+Пример структуры находится в:
+
+```text
+.env.example
+```
+
+Основные переменные:
+
+```env
+DATABASE_URL=
+GROQ_API_KEY=
+OPENAI_API_KEY=
+YANDEX_API_KEY=
+YANDEX_FOLDER_ID=
+JWT_SECRET_KEY=
+AI_PROVIDER=groq
+```
+
+### AI_PROVIDER
+
+Определяет используемого AI-провайдера:
+
+```env
+AI_PROVIDER=groq
+```
+
+или:
+
+```env
+AI_PROVIDER=openai
+```
+
+или:
+
+```env
+AI_PROVIDER=yandex
+```
+
+Для выбранного провайдера необходимо указать соответствующие credentials.
+
+Файл `.env` не должен добавляться в Git.
+
+---
+
+# Локальный запуск
+
+## 1. Клонирование
 
 ```bash
-git clone <URL_REPOSITORY>
+git clone https://github.com/Igagogi/ryadom.git
 cd ryadom
 ```
 
-### 2. Создание виртуального окружения
+## 2. Создание виртуального окружения
 
 Windows PowerShell:
 
@@ -169,51 +309,62 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Установка зависимостей
+## 3. Установка зависимостей
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### 4. Настройка переменных окружения
+## 4. Настройка PostgreSQL
 
-Создайте файл `.env`:
-
-```env
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/ryadom
-GROQ_API_KEY=your_groq_api_key
-SECRET_KEY=your_secret_key
-```
-
-Не добавляйте `.env` в Git.
-
-### 5. Создание базы данных
-
-Создайте PostgreSQL database:
+Создайте базу данных:
 
 ```text
 ryadom
 ```
 
-### 6. Применение миграций
+и укажите подключение в `.env`:
+
+```env
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/ryadom
+```
+
+## 5. Настройка AI
+
+Например, для Yandex:
+
+```env
+AI_PROVIDER=yandex
+YANDEX_API_KEY=your_api_key
+YANDEX_FOLDER_ID=your_folder_id
+```
+
+Или для Groq:
+
+```env
+AI_PROVIDER=groq
+GROQ_API_KEY=your_api_key
+```
+
+## 6. Применение миграций
 
 ```powershell
 alembic upgrade head
 ```
 
-### 7. Заполнение готовых сценариев
+## 7. Заполнение готовых сценариев
 
 ```powershell
 python -m app.db.seed_scenarios
 ```
 
-### 8. Запуск приложения
+## 8. Запуск backend
 
 ```powershell
 uvicorn app.main:app --reload
 ```
 
-После запуска API доступно по адресу:
+API:
 
 ```text
 http://127.0.0.1:8000
@@ -225,7 +376,82 @@ Swagger:
 http://127.0.0.1:8000/docs
 ```
 
-## Тестирование
+---
+
+# Запуск frontend
+
+Frontend находится в:
+
+```text
+frontend/
+```
+
+Для локального запуска:
+
+```powershell
+python -m http.server 8001 --directory frontend
+```
+
+После этого:
+
+```text
+http://localhost:8001
+```
+
+Frontend взаимодействует с FastAPI backend.
+
+---
+
+# Запуск через Docker
+
+Проект содержит:
+
+- `Dockerfile`;
+- `docker-compose.yml`.
+
+Docker Compose запускает:
+
+```text
+FastAPI
+   +
+PostgreSQL
+```
+
+Запуск:
+
+```powershell
+docker compose up --build
+```
+
+API:
+
+```text
+http://localhost:8000
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+## Миграции в Docker
+
+После запуска контейнеров:
+
+```powershell
+docker compose exec api alembic upgrade head
+```
+
+Проверить текущую версию миграций:
+
+```powershell
+docker compose exec api alembic current
+```
+
+---
+
+# Тестирование
 
 Запуск всех тестов:
 
@@ -233,23 +459,136 @@ http://127.0.0.1:8000/docs
 python -m pytest -q
 ```
 
-Текущий набор тестов проверяет:
+Текущий набор содержит:
 
-- валидацию запросов;
+```text
+28 tests
+```
+
+Тесты проверяют:
+
+- подключение к тестовой БД;
+- валидацию;
+- регистрацию;
+- авторизацию;
+- JWT;
+- protected endpoints;
 - рекомендации;
+- готовые сценарии;
 - AI fallback;
 - обработку ошибок AI;
-- регистрацию;
-- ограничения входных данных;
-- основные сценарии API.
+- генерацию занятий;
+- генерацию историй;
+- ограничения гостевых AI-запросов.
 
-## Статус проекта
+---
+
+# База данных
+
+Используется:
+
+```text
+PostgreSQL
+    ↓
+SQLAlchemy
+    ↓
+Alembic
+```
+
+Миграции находятся в:
+
+```text
+alembic/versions/
+```
+
+Актуальная версия схемы определяется через:
+
+```powershell
+alembic current
+```
+
+---
+
+# API
+
+Основные endpoints:
+
+### Authentication
+
+```text
+POST /auth/register
+POST /auth/login
+```
+
+### User
+
+```text
+GET    /users/me
+PUT    /users/me
+DELETE /users/me
+```
+
+### Recommendations
+
+```text
+POST /recommendations
+```
+
+### Activities
+
+```text
+POST /activities
+```
+
+### Stories
+
+```text
+POST /stories
+```
+
+Полная интерактивная документация API доступна через Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+# Обработка AI-запросов
+
+Для AI-ответов используются Pydantic-модели.
+
+Общий поток:
+
+```text
+User Request
+     ↓
+FastAPI
+     ↓
+Service
+     ↓
+AIService
+     ↓
+LLM Provider
+     ↓
+Structured JSON
+     ↓
+Pydantic validation
+     ↓
+API Response
+```
+
+Это позволяет отделить работу конкретного LLM-провайдера от бизнес-логики приложения.
+
+---
+
+# Статус проекта
 
 Проект находится на стадии MVP.
 
 Уже реализованы:
 
-- FastAPI API;
+- FastAPI REST API;
 - PostgreSQL;
 - SQLAlchemy;
 - Alembic;
@@ -257,35 +596,69 @@ python -m pytest -q
 - AI fallback;
 - генерация занятий;
 - генерация историй;
-- регистрация и авторизация;
+- регистрация;
+- авторизация;
 - JWT;
+- Argon2;
 - ограничение гостевых AI-запросов;
-- тесты.
+- multi-provider AI architecture;
+- frontend;
+- тестирование;
+- Docker;
+- Docker Compose.
 
-### Следующие этапы
+---
 
-- пользовательский интерфейс;
+# Текущая цель
+
+«Рядом» создаётся как практический AI-продукт и portfolio project.
+
+Проект демонстрирует работу с:
+
+- Python;
+- FastAPI;
+- REST API;
+- PostgreSQL;
+- SQLAlchemy;
+- Alembic;
+- Pydantic;
+- JWT;
+- authentication;
+- business logic;
+- repository pattern;
+- LLM API;
+- multi-provider AI architecture;
+- error handling;
+- automated testing;
+- Docker;
+- frontend integration.
+
+Разработка ведётся по принципу:
+
+```text
+MVP
+ ↓
+реальные пользователи
+ ↓
+обратная связь
+ ↓
+улучшение продукта
+```
+
+---
+
+# Следующие этапы
+
+После завершения MVP возможны:
+
 - профиль ребёнка;
 - история запросов;
 - персонализация;
 - дополнительные сценарии;
+- улучшение AI-рекомендаций;
 - deployment;
+- сбор обратной связи;
 - анализ пользовательских запросов;
 - монетизация.
 
-## Цель проекта
-
-«Рядом» создаётся как практический pet-проект для разработки AI-продукта с реальным backend:
-
-- API;
-- база данных;
-- бизнес-логика;
-- авторизация;
-- интеграция LLM;
-- обработка ошибок;
-- тестирование;
-- подготовка к дальнейшему deployment.
-
-Проект развивается по принципу:
-
-**MVP → реальные пользователи → обратная связь → улучшение продукта.**
+Новые функции добавляются после проверки их необходимости на реальных пользовательских сценариях.

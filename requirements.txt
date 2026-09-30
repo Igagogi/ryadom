@@ -9,6 +9,9 @@ python-dotenv==1.2.3
 SQLAlchemy==2.0.52
 uvicorn==0.52.4
 email-validator==2.3.0
+openai
+pytest-asyncio
+yandex-ai-studio-sdk==0.22.1
 
 # Development / testing
 pytest==9.1.1
