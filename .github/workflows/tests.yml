@@ -39,5 +39,6 @@ jobs:
 
       - name: Run tests
         env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ryadom_test
           TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ryadom_test
         run: pytest -q
