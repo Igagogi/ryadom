@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.database import get_db
 from app.db.models import Scenario, User
 from app.main import app
+from app.utils.rate_limit import request_counts
 
 load_dotenv("tests/.env.test")
 
@@ -42,3 +43,10 @@ def client(db):
     yield client
 
     app.dependency_overrides.clear()
+
+@pytest.fixture(autouse=True)
+def reset_rate_limit():
+    """Fixture для сброса счетчиков запросов перед каждым тестом."""
+    request_counts.clear()
+    yield
+    request_counts.clear()

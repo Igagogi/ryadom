@@ -4,14 +4,37 @@ from fastapi.testclient import TestClient
 
 from app.ai.service import AIService, AIServiceError
 from app.core.ai import get_ai_service
+from app.db.models import Scenario
 from app.main import app
 from app.schemas.recommendations import RecommendationAIResponse
 from app.utils.rate_limit import request_counts
 
 
-def test_recommendations_endpoint_with_scenario():
+def test_recommendations_endpoint_with_scenario(db, client):
     """Тестирование рекомендации из базы данных."""
-    client = TestClient(app)
+
+    scenario = Scenario(
+        category="refusal",
+        subcategory="sleep",
+        age_min=2,
+        age_max=6,
+        place="home",
+        title="Спокойный переход ко сну",
+        steps=[
+            "Предупредить ребёнка заранее о подготовке ко сну.",
+            "Предложить выбрать одну спокойную игру перед сном.",
+        ],
+        phrase="Сейчас заканчиваем играть и начинаем готовиться ко сну.",
+        avoid=[
+            "Не угрожать наказанием.",
+            "Не повышать голос.",
+        ],
+        if_not_helped="Дать ребёнку несколько минут на спокойный переход.",
+        is_active=True,
+    )
+
+    db.add(scenario)
+    db.commit()
 
     response = client.post(
         "/recommendations",
@@ -27,16 +50,11 @@ def test_recommendations_endpoint_with_scenario():
 
     data = response.json()
 
-    assert "title" in data
-    assert "steps" in data
-    assert "phrase" in data
-    assert "avoid" in data
-    assert "if_not_helped" in data
-
-    assert isinstance(data["steps"], list)
-    assert isinstance(data["phrase"], str)
-    assert isinstance(data["avoid"], list)
-    assert isinstance(data["if_not_helped"], str)
+    assert data["title"] == "Спокойный переход ко сну"
+    assert data["steps"] == scenario.steps
+    assert data["phrase"] == scenario.phrase
+    assert data["avoid"] == scenario.avoid
+    assert data["if_not_helped"] == scenario.if_not_helped
 
 
 def test_recommendations_endpoint_with_ai(client):
