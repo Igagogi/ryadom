@@ -1,4 +1,4 @@
-export const API_BASE_URL = window.RYADOM_API_URL || "https://ryadom-0qgk.onrender.com";
+export const API_BASE_URL = window.RYADOM_API_URL || "https://api.ryadomai.online";
 export const API_TIMEOUT_MS = 45000;
 
 export class ApiError extends Error {
