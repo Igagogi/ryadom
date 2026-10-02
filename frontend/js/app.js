@@ -185,13 +185,20 @@ function validationMessage(text) {
 function home() {
   page(`<header class="brand"><div><h1>Рядом</h1><p>Больше спокойных<br>дней вместе</p></div><button type="button" class="avatar" data-route="profile" aria-label="Профиль">${icons.profile}</button></header>
     <h2 class="home-title">Чем помочь сейчас?</h2>
+    <div class="home-intro">
+      <strong>AI-помощник для родителей</strong>
+      <p>Короткие идеи и поддержка для детей 2–6 лет — прямо в нужный момент.</p>
+    </div>
     ${agePicker()}
     <div class="cards">
       <button type="button" class="feature-card peach" data-route="recommendation">${hero("problem")}<div class="copy"><strong>Сложная<br>ситуация</strong><p>Получите поддержку<br>и рекомендации от AI</p></div><span class="card-go">${icons.arrow}</span></button>
       <button type="button" class="feature-card green" data-route="activity">${hero("activity")}<div class="copy"><strong>Занятие</strong><p>Идеи для развития,<br>игры и творчества</p></div><span class="card-go">${icons.arrow}</span></button>
       <button type="button" class="feature-card lavender" data-route="story">${hero("story")}<div class="copy"><strong>Сказка</strong><p>Уютные истории<br>для спокойного сна</p></div><span class="card-go">${icons.arrow}</span></button>
     </div>
-    <p class="kindness">${icons.heart}<span>Вы делаете большое дело<br>Рядом — когда это важно</span></p>`);
+    <div class="home-note">
+      ${icons.heart}
+      <div><strong>Рядом, когда это важно</strong><span>Практичная помощь без длинных инструкций.</span></div>
+    </div>`);
 }
 
 function recommendationForm() {
@@ -315,7 +322,7 @@ function login({ clearFields = false } = {}) {
     </form>
     <p class="auth-switch">Нет аккаунта? <button type="button" data-route="register">Зарегистрироваться</button></p>
     <button type="button" class="text-button" data-route="home">Продолжить без входа</button>
-  </section>`, { nav: false });
+  </section>`);
 
   if (clearFields) {
     requestAnimationFrame(() => {
@@ -341,7 +348,7 @@ function register() {
       <div class="form-notice" aria-live="polite"></div>
     </form>
     <p class="auth-switch">Уже есть аккаунт? <button type="button" data-route="login">Войти</button></p>
-  </section>`, { nav: false });
+  </section>`);
 }
 
 function profile(editing = false) {

@@ -212,6 +212,63 @@ p {
   color: var(--text);
 }
 
+
+.home-intro {
+  margin: -4px 0 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.home-intro strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.home-intro p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.home-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 2px 4px;
+  padding: 12px 14px;
+  background: var(--beige);
+  border-radius: 18px;
+}
+
+.home-note .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--coral);
+  flex: 0 0 auto;
+}
+
+.home-note div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.home-note strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.home-note span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
 .age-select {
   display: inline-flex;
   align-items: center;
