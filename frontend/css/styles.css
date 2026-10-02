@@ -178,14 +178,38 @@ p {
 .empty-icon .icon { width: 36px; height: 36px; }
 
 .brand {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 52px;
 }
 
-.brand h1 { margin: 0 0 6px; font-size: 34px; }
-.brand p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.brand-copy {
+  text-align: center;
+}
+
+.brand h1 {
+  margin: 0 0 2px;
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.brand p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.brand .avatar {
+  position: absolute;
+  top: 8px;
+  right: 0;
+}
 
 .avatar,
 .icon-button {

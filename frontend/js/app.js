@@ -183,7 +183,7 @@ function validationMessage(text) {
 }
 
 function home() {
-  page(`<header class="brand"><div><h1>Рядом</h1><p>Больше спокойных<br>дней вместе</p></div><button type="button" class="avatar" data-route="profile" aria-label="Профиль">${icons.profile}</button></header>
+  page(`<header class="brand"><div class="brand-copy"><h1>Рядом</h1><p>Больше спокойных дней вместе</p></div><button type="button" class="avatar" data-route="profile" aria-label="Профиль">${icons.profile}</button></header>
     <h2 class="home-title">Чем помочь сейчас?</h2>
     <div class="home-intro">
       <strong>AI-помощник для родителей</strong>
